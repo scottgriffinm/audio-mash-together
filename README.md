@@ -1,6 +1,6 @@
 # Audio Mashup Creator
 
-This project is an **Audio Mashup Creator** that lets users upload multiple audio files in `.mp3` or `.wav` format, analyzes each file's key and BPM, and generates a custom mashup. Users can select a "No Drums" option to create a mashup that includes only files with a musical key, omitting percussive sounds.
+This project is an **Audio Mashup Creator** that lets users upload multiple audio files in `.mp3` or `.wav` format, analyzes each file's key and BPM, and generates a custom mashup.
 
 ## Table of Contents
 
@@ -17,7 +17,6 @@ This project is an **Audio Mashup Creator** that lets users upload multiple audi
 - **Upload multiple files**: Users can upload `.mp3` or `.wav` audio files.
 - **Key and BPM extraction**: Automatically detects the musical key and BPM from file names.
 - **Pitch and Tempo Adjustment**: Matches audio tracks by adjusting pitch (semitone shift) and tempo to create harmonic mashups.
-- **Customizable Mashups**: Users can select the "No Drums" option to filter files by key, allowing only harmonic elements in the mashup.
 - **Automatic Clean-up**: Removes temporary files after the mashup is created.
 
 ## Requirements
@@ -53,8 +52,6 @@ This project is an **Audio Mashup Creator** that lets users upload multiple audi
    - Navigate to `http://localhost:3000` in your browser.
    - Use the file upload form to select at least three `.mp3` or `.wav` files for the mashup.
 
-2. **Enable "No Drums" Option** (optional):
-   - After uploading files, you will see a "No Drums" checkbox. Selecting this option will filter files based on musical key, excluding percussive sounds.
 
 3. **Create Mashup**:
    - Click "Make Mashup Loop" to generate the mashup. The combined audio will appear in an audio player for playback.
