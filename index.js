@@ -22,13 +22,35 @@ const upload = multer({
 
 // Key to semitone mapping
 const keyToSemitone = {
-  'c major': 0, 'a minor': 0, 'c# major': 1, 'a# minor': 1, 'd major': 2, 'b minor': 2,
-  'd# major': 3, 'c minor': 3, 'e major': 4, 'c# minor': 4, 'f major': 5, 'd minor': 5,
-  'f# major': 6, 'd# minor': 6, 'g major': 7, 'e minor': 7, 'g# major': 8, 'f minor': 8,
-  'a major': 9, 'f# minor': 9, 'a# major': 10, 'g minor': 10, 'b major': 11, 'g# minor': 11,
-  'cb major': 11, 'ab minor': 8, 'db major': 1, 'bb minor': 10, 'eb major': 3, 'eb minor': 3,
-  'gb major': 6, 'db minor': 1, 'ab major': 8, 'gb minor': 6, 'bb major': 10, 'bb minor': 10,
-};
+    // Major keys
+    'c major': 0,
+    'c# major': 1, 'db major': 1,
+    'd major': 2,
+    'd# major': 3, 'eb major': 3,
+    'e major': 4, 'fb major': 4,
+    'f major': 5, 'e# major': 5,
+    'f# major': 6, 'gb major': 6,
+    'g major': 7,
+    'g# major': 8, 'ab major': 8,
+    'a major': 9,
+    'a# major': 10, 'bb major': 10,
+    'b major': 11, 'cb major': 11,
+  
+    // Minor keys
+    'a minor': 0,
+    'a# minor': 1, 'bb minor': 1,
+    'b minor': 2, 'cb minor': 2,
+    'b# minor': 3, 
+    'c minor': 3,
+    'c# minor': 4, 'db minor': 4,
+    'd minor': 5,
+    'd# minor': 6, 'eb minor': 6,
+    'e minor': 7, 'fb minor': 7, 
+    'e# minor': 8, 'f minor': 8,
+    'f# minor': 9, 'gb minor': 9,
+    'g minor': 10,
+    'g# minor': 11, 'ab minor': 11,
+  };
 
 
 const bpmLoopLengths = {
@@ -68,6 +90,7 @@ const bpmLoopLengths = {
     245: 3.918, 246: 3.902, 247: 3.887, 248: 3.871, 249: 3.855,
     79: 12.152, 250: 3.84
 }
+
 
 // Function to extract key and BPM from filename
 function extractKeyAndBpm(filename) {
@@ -201,6 +224,9 @@ app.post('/upload-audio', (req, res) => {
   
       if (file.key && targetKey && file.key !== targetKey) {
         const semitones = calculateSemitoneShift(file.key, targetKey);
+        console.log(`Target Key: ${targetKey}`);
+        console.log(`File Key: ${file.key}`);
+        console.log(`Semitone shift for ${file.originalname}: ${semitones}`);
         const pitchFactor = Math.pow(2, semitones / 12);
         ffmpegCommand = ffmpegCommand.audioFilters(`rubberband=pitch=${pitchFactor}`);
       }
