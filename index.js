@@ -73,8 +73,10 @@ function getAtempoFilters(speedFactor) {
   return filters;
 }
 
-// Serve static HTML page
+// Serve static HTML page and static files
 app.use(express.static(path.join(__dirname, 'public')));
+// Serve static files in "uploads" directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Endpoint to handle file upload, key, and BPM adjustment
 app.post('/process-audio', (req, res) => {
@@ -139,11 +141,8 @@ app.post('/process-audio', (req, res) => {
               .complexFilter('amix=inputs=' + processedFiles.length + ':duration=longest')
               .output(combinedOutputPath)
               .on('end', () => {
-                res.download(combinedOutputPath, (err) => {
-                  processedFiles.forEach(fs.unlinkSync);  // Clean up individual files
-                  fs.unlinkSync(combinedOutputPath);     // Clean up the combined output
-                  audioFiles.forEach(file => fs.unlinkSync(file.path)); // Clean up uploaded files
-                });
+                // Send the path of the combined audio to the client
+                res.json({ audioPath: `/uploads/combined_output.mp3` });
               })
               .on('error', err => res.status(500).send(`Error combining audio: ${err.message}`))
               .run();
