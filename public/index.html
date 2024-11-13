@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio Processor</title>
+</head>
+<body>
+  <h1>Upload Multiple Audio Files</h1>
+  <form id="uploadForm" enctype="multipart/form-data" action="/process-audio" method="post">
+    <label for="audioFiles">Upload MP3/WAV files:</label>
+    <input type="file" id="audioFiles" name="audioFiles" accept=".mp3,.wav" multiple required><br><br>
+    <button type="submit">Process and Combine</button>
+  </form>
+</body>
+</html>
