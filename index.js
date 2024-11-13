@@ -71,15 +71,28 @@ const bpmLoopLengths = {
 
 // Function to extract key and BPM from filename
 function extractKeyAndBpm(filename) {
-  const cleanedName = filename.replace(/[\s_]+/g, '').toLowerCase();
-  const keyMatch = cleanedName.match(/([a-g][#b]?)(maj|minor|major|min)/);
-  const bpmMatch = filename.match(/(\d{2,3})/);
+    // Clean the filename
+    const cleanedName = filename.replace(/[\s_]+/g, '').toLowerCase();
+  
+    // Primary regex to match key and quality (major/minor)
+    let keyMatch = cleanedName.match(/([a-g][#b]?)(maj|minor|major|min)/);
+    const bpmMatch = filename.match(/(\d{2,3})/);
+  
+    // Determine key and type from the primary regex
+    let key = keyMatch ? `${keyMatch[1].toUpperCase()} ${keyMatch[2].startsWith('maj') ? 'major' : 'minor'}` : null;
+  
+    // If no key was found, try an alternate method (key followed by optional 'm' for minor)
+    if (!key) {
+      keyMatch = cleanedName.match(/([a-g][#b]?)(m)?/);
+      key = keyMatch ? `${keyMatch[1].toUpperCase()} ${keyMatch[2] === 'm' ? 'minor' : 'major'}` : null;
+    }
+  
+    // Parse BPM value
+    const bpm = bpmMatch ? parseInt(bpmMatch[1], 10) : null;
+  
+    return { key, bpm };
+  }
 
-  const key = keyMatch ? `${keyMatch[1]} ${keyMatch[2].startsWith('maj') ? 'major' : 'minor'}` : null;
-  const bpm = bpmMatch ? parseInt(bpmMatch[1], 10) : null;
-
-  return { key, bpm };
-}
 
 // Function to calculate semitone shift
 function calculateSemitoneShift(originalKey, targetKey) {
@@ -135,6 +148,11 @@ app.post('/upload-audio', (req, res) => {
   });
 
 
+  const sanitizeFilename = (filename) => {
+    // Replace special characters except for `#` and `b` used in musical keys
+    return filename.replace(/[^a-zA-Z0-9#b.-]/g, '_'); // Keep alphanumeric, #, b, ., and - 
+  };
+  
   app.post('/make-mashup', express.json(), (req, res) => {
     const uploadedFiles = req.body.files;
   
@@ -151,67 +169,94 @@ app.post('/upload-audio', (req, res) => {
       return { ...file, key, bpm };
     });
   
-    // Filter files with a key and select a random base file with a key, or any random file if none have a key
+    console.log("Files used in this mashup:");
+    filesWithInfo.forEach(file => {
+      console.log(`- ${file.originalname} (Key: ${file.key || 'None'}, BPM: ${file.bpm || 'None'})`);
+    });
+  
     const filesWithKeys = filesWithInfo.filter(file => file.key);
     const baseFile = filesWithKeys.length > 0 
       ? filesWithKeys[Math.floor(Math.random() * filesWithKeys.length)]
       : filesWithInfo[Math.floor(Math.random() * filesWithInfo.length)];
   
-    const targetKey = baseFile.key;
-    const targetBpm = baseFile.bpm || 120; // Default BPM if none is found
-    const maxDuration = bpmLoopLengths[targetBpm] || 10; // Default to 10 seconds if no BPM match in `bpmLoopLengths`
+    console.log(`Base File: ${baseFile.originalname}, Target Key: ${baseFile.key || 'None'}, Target BPM: ${baseFile.bpm || 'None'}`);
+  
+    const targetKey = baseFile.key || "unknown_key";
+    const targetBpm = baseFile.bpm || 120;
+  
+    const randomWords = ["vibes", "mix", "loop", "mashup", "beats", "sounds"];
+    const randomSelection = Array.from({ length: 2 }, () => randomWords[Math.floor(Math.random() * randomWords.length)]);
+    const filenameWithHash = sanitizeFilename(`${targetBpm}_${targetKey}_${randomSelection.join("_")}.mp3`);
+    console.log(`Generated filename: ${filenameWithHash}`);
+    
+    const finalOutputPath = `uploads/${filenameWithHash}`;
+    
     const processedFiles = [];
+    const errors = [];
     let processingCount = 0;
   
-    // Adjust all selected files to match the target key and BPM
     filesWithInfo.forEach(file => {
-      const outputFilePath = `uploads/processed_${file.originalname}`;
+      const sanitizedOutputFilePath = `uploads/${sanitizeFilename(`processed_${file.originalname}`)}`;
       let ffmpegCommand = ffmpeg(file.path);
   
-      // Adjust key if the file has a key and baseFile has a target key
       if (file.key && targetKey && file.key !== targetKey) {
         const semitones = calculateSemitoneShift(file.key, targetKey);
         const pitchFactor = Math.pow(2, semitones / 12);
         ffmpegCommand = ffmpegCommand.audioFilters(`rubberband=pitch=${pitchFactor}`);
       }
   
-      // Adjust BPM if the file has a BPM and baseFile has a target BPM
       if (file.bpm && file.bpm !== targetBpm) {
         const speedFactor = targetBpm / file.bpm;
         const atempoFilters = getAtempoFilters(speedFactor);
         ffmpegCommand = ffmpegCommand.audioFilters(...atempoFilters);
       }
   
-      // Process the file to match target key and BPM
-      ffmpegCommand.output(outputFilePath)
+      ffmpegCommand.output(sanitizedOutputFilePath)
         .on('end', () => {
-          processedFiles.push(outputFilePath);
+          processedFiles.push(sanitizedOutputFilePath);
           processingCount++;
-  
-          // When all selected files are processed, combine them into one file
           if (processingCount === filesWithInfo.length) {
-            const combinedOutputPath = 'uploads/combined_mashup.mp3';
+            if (errors.length > 0) {
+              return res.status(500).json({ errors });
+            }
             let combineCommand = ffmpeg();
-  
             processedFiles.forEach(file => {
               combineCommand = combineCommand.input(file);
             });
   
             combineCommand
-              .complexFilter('amix=inputs=' + processedFiles.length + ':duration=longest')
-            //   .outputOptions([`-t ${bpmLoopLengths[targetBpm]}`])
-              .output(combinedOutputPath)
+              .complexFilter(`amix=inputs=${processedFiles.length}:duration=longest`)
+              .outputOptions([`-t ${bpmLoopLengths[targetBpm] * 2 || 10}`])
+              .output(finalOutputPath)
               .on('end', () => {
-                // Send the path of the combined audio to the client
-                res.json({ audioPath: `/uploads/combined_mashup.mp3` });
+                // Encode the filename for URL safety
+                const encodedPath = encodeURIComponent(filenameWithHash);
+                res.json({ audioPath: `/uploads/${encodedPath}` });
+                
                 // Clean up individual processed files
-                processedFiles.forEach(fs.unlinkSync);
+                processedFiles.forEach(file => {
+                  try {
+                    fs.unlinkSync(file);
+                  } catch (err) {
+                    console.error(`Error deleting processed file ${file}: ${err.message}`);
+                  }
+                });
               })
-              .on('error', err => res.status(500).send(`Error combining audio: ${err.message}`))
+              .on('error', err => {
+                console.error(`Error combining audio files: ${err.message}`);
+                res.status(500).send(`Error combining audio: ${err.message}`);
+              })
               .run();
           }
         })
-        .on('error', err => res.status(500).send(`Error processing audio file: ${err.message}`))
+        .on('error', err => {
+          console.error(`Error processing audio file ${file.originalname}: ${err.message}`);
+          errors.push({ file: file.originalname, error: err.message });
+          processingCount++;
+          if (processingCount === filesWithInfo.length) {
+            res.status(500).json({ errors });
+          }
+        })
         .run();
     });
   });
