@@ -199,7 +199,7 @@ app.post('/upload-audio', (req, res) => {
   
             combineCommand
               .complexFilter('amix=inputs=' + processedFiles.length + ':duration=longest')
-              .outputOptions([`-t ${maxDuration}`]) // Limit the output file duration to `maxDuration` seconds
+              .outputOptions([`-t ${bpmLoopLengths[targetBpm]}`])
               .output(combinedOutputPath)
               .on('end', () => {
                 // Send the path of the combined audio to the client
