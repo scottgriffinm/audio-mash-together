@@ -121,14 +121,12 @@ function extractKeyAndBpm(filename) {
 function calculateSemitoneShift(originalKey, targetKey) {
   const originalSemitone = keyToSemitone[originalKey.toLowerCase()];
   const targetSemitone = keyToSemitone[targetKey.toLowerCase()];
-
   let semitoneShift = targetSemitone - originalSemitone;
   if (semitoneShift > 6) {
     semitoneShift -= 12;
   } else if (semitoneShift < -6) {
     semitoneShift += 12;
   }
-
   return semitoneShift;
 }
 
@@ -224,9 +222,6 @@ app.post('/upload-audio', (req, res) => {
   
       if (file.key && targetKey && file.key !== targetKey) {
         const semitones = calculateSemitoneShift(file.key, targetKey);
-        console.log(`Target Key: ${targetKey}`);
-        console.log(`File Key: ${file.key}`);
-        console.log(`Semitone shift for ${file.originalname}: ${semitones}`);
         const pitchFactor = Math.pow(2, semitones / 12);
         ffmpegCommand = ffmpegCommand.audioFilters(`rubberband=pitch=${pitchFactor}`);
       }
