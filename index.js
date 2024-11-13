@@ -119,9 +119,9 @@ function extractKeyAndBpm(filename) {
 
 // Function to calculate semitone shift
 function calculateSemitoneShift(originalKey, targetKey) {
-  const originalSemitone = keyToSemitone[originalKey];
-  const targetSemitone = keyToSemitone[targetKey];
-  
+  const originalSemitone = keyToSemitone[originalKey.toLowerCase()];
+  const targetSemitone = keyToSemitone[targetKey.toLowerCase()];
+
   let semitoneShift = targetSemitone - originalSemitone;
   if (semitoneShift > 6) {
     semitoneShift -= 12;
